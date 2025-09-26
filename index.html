@@ -54,6 +54,9 @@
     <!-- 1. 카메라로 스캔 -->
     <div>
         <h3>📷 카메라로 스캔하기</h3>
+        <p style="color: #666; font-size: 14px;">
+            💡 스캔 팁: 바코드를 화면 중앙에 놓고, 충분한 조명 아래에서 안정적으로 유지하세요
+        </p>
         <button onclick="startCamera()">카메라 시작</button>
         <button onclick="stopCamera()">카메라 중지</button>
         <div id="scanner" class="scanner"></div>
@@ -122,14 +125,38 @@
 
             // 바코드 인식했을 때 실행되는 함수
             Quagga.onDetected(function(result) {
-                const code = result.codeResult.code;    // 바코드 번호
-                const format = result.codeResult.format; // 바코드 형식
+                const code = result.codeResult.code;
+                const format = result.codeResult.format;
                 
-                // 알림창으로 바코드 번호 표시
-                alert(`바코드 인식 성공!\n\n번호: ${code}\n형식: ${format.toUpperCase()}`);
-                
-                showResult(code, format); // 결과 화면에 표시
-                console.log('바코드 인식:', code);
+                // 신뢰도 체크 (정확도 향상)
+                if (result.codeResult && result.codeResult.decodedCodes) {
+                    let minConfidence = 0.85; // 85% 이상 신뢰도만 허용
+                    let totalConfidence = 0;
+                    let validCodes = 0;
+                    
+                    result.codeResult.decodedCodes.forEach(function(decodedCode) {
+                        if (decodedCode.error !== undefined) {
+                            totalConfidence += (1.0 - decodedCode.error);
+                            validCodes++;
+                        }
+                    });
+                    
+                    let avgConfidence = totalConfidence / validCodes;
+                    
+                    // 신뢰도가 높은 경우만 결과 표시
+                    if (avgConfidence >= minConfidence) {
+                        alert(`바코드 인식 성공!\n\n번호: ${code}\n형식: ${format.toUpperCase()}\n신뢰도: ${Math.round(avgConfidence * 100)}%`);
+                        showResult(code, format);
+                        console.log('바코드 인식:', code, '신뢰도:', avgConfidence);
+                    } else {
+                        console.log('신뢰도 낮음:', code, '신뢰도:', avgConfidence);
+                    }
+                } else {
+                    // 기본 처리 (신뢰도 정보가 없는 경우)
+                    alert(`바코드 인식 성공!\n\n번호: ${code}\n형식: ${format.toUpperCase()}`);
+                    showResult(code, format);
+                    console.log('바코드 인식:', code);
+                }
             });
         }
 
@@ -149,26 +176,41 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                // QuaggaJS로 이미지 분석
+                // QuaggaJS로 이미지 분석 (정확도 향상 설정)
                 Quagga.decodeSingle({
-                    src: e.target.result, // 이미지 데이터
+                    src: e.target.result,
                     numOfWorkers: 0,
+                    inputStream: {
+                        size: 800 // 더 큰 크기로 처리
+                    },
+                    locator: {
+                        halfSample: false,    // 전체 해상도 사용
+                        patchSize: "large",   // 큰 패치 사용
+                        debug: false
+                    },
                     decoder: {
                         readers: [
                             "code_128_reader",
                             "ean_reader", 
                             "ean_8_reader",
-                            "upc_reader"
-                        ]
-                    }
+                            "upc_reader",
+                            "code_39_reader"
+                        ],
+                        multiple: false
+                    },
+                    locate: true
                 }, function(result) {
                     if (result && result.codeResult) {
                         const code = result.codeResult.code;
                         const format = result.codeResult.format;
+                        
+                        // 파일에서도 알림창 표시
+                        alert(`파일에서 바코드 인식 성공!\n\n번호: ${code}\n형식: ${format.toUpperCase()}`);
+                        
                         showResult(code, format);
                         console.log('파일에서 바코드 인식:', code);
                     } else {
-                        alert('바코드를 찾을 수 없습니다.');
+                        alert('바코드를 찾을 수 없습니다.\n\n팁:\n- 바코드가 선명한지 확인하세요\n- 조명이 충분한지 확인하세요\n- 바코드가 화면에 꽉 차도록 촬영하세요');
                     }
                 });
             };
