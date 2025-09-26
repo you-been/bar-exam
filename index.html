@@ -29,6 +29,57 @@
             height: 300px;
             border: 1px solid #ccc;
             margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 바코드 스캔 가이드 라인 */
+        .scanner::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 10%;
+            right: 10%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #ff0000, transparent);
+            transform: translateY(-50%);
+            z-index: 10;
+            pointer-events: none;
+            animation: scanLine 2s ease-in-out infinite;
+        }
+        
+        @keyframes scanLine {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+        
+        /* 스캔 영역 가이드 */
+        .scan-area {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 80%;
+            height: 100px;
+            border: 2px solid #00ff00;
+            border-radius: 10px;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            pointer-events: none;
+            background: rgba(0, 255, 0, 0.1);
+        }
+        
+        .scan-area::before {
+            content: '바코드를 이 영역에 맞춰주세요';
+            position: absolute;
+            top: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            white-space: nowrap;
         }
         
         .result {
@@ -59,7 +110,9 @@
         </p>
         <button id="startBtn" onclick="startCamera()">카메라 시작</button>
         <button id="stopBtn" onclick="stopCamera()" disabled>카메라 중지</button>
-        <div id="scanner" class="scanner"></div>
+        <div id="scanner" class="scanner">
+            <div class="scan-area"></div>
+        </div>
     </div>
     
     <!-- 2. 파일에서 읽기 -->
@@ -135,6 +188,35 @@
                 alert(`바코드 인식 완료! ✅\n\n${code}\n(${format.toUpperCase()})\n\n다시 스캔하려면 '카메라 시작'을 눌러주세요.`);
                 showResult(code, format);
                 console.log('바코드 인식:', code);
+            });
+            
+            // 바코드 찾았을 때 (인식 전) - 시각적 피드백
+            Quagga.onProcessed(function(result) {
+                var drawingCtx = Quagga.canvas.ctx.overlay;
+                var drawingCanvas = Quagga.canvas.dom.overlay;
+                
+                if (result) {
+                    // 인식된 바코드 영역에 초록색 박스 표시
+                    if (result.codeResult && result.codeResult.code) {
+                        drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                        Quagga.ImageDebug.drawPath(result.line, {x: 'x', y: 'y'}, drawingCtx, {color: 'green', lineWidth: 3});
+                    }
+                    
+                    // 바코드 후보 영역에 빨간색 박스 표시
+                    if (result.boxes) {
+                        drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+                        result.boxes.filter(function (box) {
+                            return box !== result.box;
+                        }).forEach(function (box) {
+                            Quagga.ImageDebug.drawPath(box, {x: 0, y: 1}, drawingCtx, {color: 'red', lineWidth: 2});
+                        });
+                    }
+                    
+                    // 최종 인식 영역에 파란색 박스 표시
+                    if (result.box) {
+                        Quagga.ImageDebug.drawPath(result.box, {x: 0, y: 1}, drawingCtx, {color: 'blue', lineWidth: 2});
+                    }
+                }
             });
         }
 
