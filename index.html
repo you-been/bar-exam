@@ -130,6 +130,8 @@
 
     <script>
         let isScanning = false;
+        let lastCode = null;
+        let detectionCount = 0;
 
         // 브라우저 지원 여부 체크
         function checkBrowserSupport() {
@@ -142,27 +144,25 @@
 
         // 1. 카메라 시작하기
         function startCamera() {
-            // 브라우저 지원 체크
-            if (!checkBrowserSupport()) {
-                return;
-            }
+            if (!checkBrowserSupport()) return;
+
             Quagga.init({
                 inputStream: {
                     name: "Live",
                     type: "LiveStream",
-                    target: document.getElementById('scanner'), // 카메라 화면이 나올 div
+                    target: document.getElementById('scanner'),
                     constraints: {
                         width: 640,
                         height: 480,
-                        facingMode: "environment" // 후면 카메라 사용
+                        facingMode: "environment"
                     }
                 },
                 decoder: {
                     readers: [
-                        "code_128_reader", // Code 128 (물류용)
-                        "ean_reader",      // EAN-13 (상품바코드)
-                        "ean_8_reader",    // EAN-8
-                        "upc_reader"       // UPC (미국 상품바코드)
+                        "code_128_reader",
+                        "ean_reader",
+                        "ean_8_reader",
+                        "upc_reader"
                     ]
                 }
             }, function(err) {
@@ -172,52 +172,35 @@
                 }
                 
                 console.log("카메라 시작됨");
-                Quagga.start(); // 실제 스캔 시작
+                Quagga.start();
                 isScanning = true;
-            });
 
-            // 바코드 인식했을 때 실행되는 함수
-            Quagga.onDetected(function(result) {
-                const code = result.codeResult.code;
-                const format = result.codeResult.format;
-                
-                // 바코드 인식 후 즉시 카메라 중지
+                // 이벤트 초기화
+                lastCode = null;
+                detectionCount = 0;
+                Quagga.onDetected(onDetectedHandler);
+            });
+        }
+
+        // 바코드 인식 이벤트 핸들러
+        function onDetectedHandler(result) {
+            const code = result.codeResult.code;
+            const format = result.codeResult.format;
+
+            if (lastCode === code) {
+                detectionCount++;
+            } else {
+                detectionCount = 1;
+                lastCode = code;
+            }
+
+            // 같은 코드가 3번 연속 인식되면 확정
+            if (detectionCount >= 3) {
                 stopCamera();
-                
-                // 결과 표시
-                alert(`바코드 인식 완료! ✅\n\n${code}\n(${format.toUpperCase()})\n\n다시 스캔하려면 '카메라 시작'을 눌러주세요.`);
                 showResult(code, format);
-                console.log('바코드 인식:', code);
-            });
-            
-            // 바코드 찾았을 때 (인식 전) - 시각적 피드백
-            Quagga.onProcessed(function(result) {
-                var drawingCtx = Quagga.canvas.ctx.overlay;
-                var drawingCanvas = Quagga.canvas.dom.overlay;
-                
-                if (result) {
-                    // 인식된 바코드 영역에 초록색 박스 표시
-                    if (result.codeResult && result.codeResult.code) {
-                        drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                        Quagga.ImageDebug.drawPath(result.line, {x: 'x', y: 'y'}, drawingCtx, {color: 'green', lineWidth: 3});
-                    }
-                    
-                    // 바코드 후보 영역에 빨간색 박스 표시
-                    if (result.boxes) {
-                        drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-                        result.boxes.filter(function (box) {
-                            return box !== result.box;
-                        }).forEach(function (box) {
-                            Quagga.ImageDebug.drawPath(box, {x: 0, y: 1}, drawingCtx, {color: 'red', lineWidth: 2});
-                        });
-                    }
-                    
-                    // 최종 인식 영역에 파란색 박스 표시
-                    if (result.box) {
-                        Quagga.ImageDebug.drawPath(result.box, {x: 0, y: 1}, drawingCtx, {color: 'blue', lineWidth: 2});
-                    }
-                }
-            });
+                alert(`바코드 인식 완료! ✅\n\n번호: ${code}\n형식: ${format.toUpperCase()}\n\n다시 스캔하려면 '카메라 시작'을 눌러주세요.`);
+                Quagga.offDetected(onDetectedHandler); // 중복 방지
+            }
         }
 
         // 2. 카메라 중지하기
@@ -225,12 +208,8 @@
             if (isScanning) {
                 Quagga.stop();
                 isScanning = false;
-                
-                // 버튼 상태 복구
-                document.getElementById('startBtn').textContent = '카메라 시작';
                 document.getElementById('startBtn').disabled = false;
                 document.getElementById('stopBtn').disabled = true;
-                
                 console.log("카메라 중지됨");
             }
         }
@@ -242,22 +221,19 @@
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                // QuaggaJS로 이미지 분석 (정확도 향상 설정)
                 Quagga.decodeSingle({
                     src: e.target.result,
                     numOfWorkers: 0,
-                    inputStream: {
-                        size: 800 // 더 큰 크기로 처리
-                    },
+                    inputStream: { size: 800 },
                     locator: {
-                        halfSample: false,    // 전체 해상도 사용
-                        patchSize: "large",   // 큰 패치 사용
+                        halfSample: false,
+                        patchSize: "large",
                         debug: false
                     },
                     decoder: {
                         readers: [
                             "code_128_reader",
-                            "ean_reader", 
+                            "ean_reader",
                             "ean_8_reader",
                             "upc_reader",
                             "code_39_reader"
@@ -269,12 +245,8 @@
                     if (result && result.codeResult) {
                         const code = result.codeResult.code;
                         const format = result.codeResult.format;
-                        
-                        // 파일에서도 알림창 표시
-                        alert(`파일에서 바코드 인식 성공!\n\n번호: ${code}\n형식: ${format.toUpperCase()}`);
-                        
                         showResult(code, format);
-                        console.log('파일에서 바코드 인식:', code);
+                        alert(`파일에서 바코드 인식 성공!\n\n번호: ${code}\n형식: ${format.toUpperCase()}`);
                     } else {
                         alert('바코드를 찾을 수 없습니다.\n\n팁:\n- 바코드가 선명한지 확인하세요\n- 조명이 충분한지 확인하세요\n- 바코드가 화면에 꽉 차도록 촬영하세요');
                     }
