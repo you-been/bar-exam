@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>간단 바코드 스캐너</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .scanner {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ccc;
+            margin: 20px 0;
+        }
+        
+        .result {
+            background: #f0f0f0;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        input[type="file"] {
+            margin: 10px 0;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+</head>
+<body>
+    <h1>바코드 스캐너</h1>
+    
+    <!-- 1. 카메라로 스캔 -->
+    <div>
+        <h3>📷 카메라로 스캔하기</h3>
+        <button onclick="startCamera()">카메라 시작</button>
+        <button onclick="stopCamera()">카메라 중지</button>
+        <div id="scanner" class="scanner"></div>
+    </div>
+    
+    <!-- 2. 파일에서 읽기 -->
+    <div>
+        <h3>📁 이미지 파일에서 읽기</h3>
+        <input type="file" accept="image/*" onchange="readFromFile(event)">
+    </div>
+    
+    <!-- 3. 결과 표시 -->
+    <div id="result" class="result hidden">
+        <h3>인식된 바코드:</h3>
+        <p><strong>번호:</strong> <span id="barcode-number"></span></p>
+        <p><strong>형식:</strong> <span id="barcode-format"></span></p>
+    </div>
+
+    <script>
+        let isScanning = false;
+
+        // 브라우저 지원 여부 체크
+        function checkBrowserSupport() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert('이 브라우저는 카메라 접근을 지원하지 않습니다.\n\n해결방법:\n1. HTTPS로 접속하세요\n2. 최신 브라우저를 사용하세요\n3. localhost로 테스트하세요');
+                return false;
+            }
+            return true;
+        }
+
+        // 1. 카메라 시작하기
+        function startCamera() {
+            // 브라우저 지원 체크
+            if (!checkBrowserSupport()) {
+                return;
+            }
+            Quagga.init({
+                inputStream: {
+                    name: "Live",
+                    type: "LiveStream",
+                    target: document.getElementById('scanner'), // 카메라 화면이 나올 div
+                    constraints: {
+                        width: 640,
+                        height: 480,
+                        facingMode: "environment" // 후면 카메라 사용
+                    }
+                },
+                decoder: {
+                    readers: [
+                        "code_128_reader", // Code 128 (물류용)
+                        "ean_reader",      // EAN-13 (상품바코드)
+                        "ean_8_reader",    // EAN-8
+                        "upc_reader"       // UPC (미국 상품바코드)
+                    ]
+                }
+            }, function(err) {
+                if (err) {
+                    alert('카메라를 시작할 수 없습니다: ' + err.message);
+                    return;
+                }
+                
+                console.log("카메라 시작됨");
+                Quagga.start(); // 실제 스캔 시작
+                isScanning = true;
+            });
+
+            // 바코드 인식했을 때 실행되는 함수
+            Quagga.onDetected(function(result) {
+                const code = result.codeResult.code;    // 바코드 번호
+                const format = result.codeResult.format; // 바코드 형식
+                
+                showResult(code, format); // 결과 화면에 표시
+                console.log('바코드 인식:', code);
+            });
+        }
+
+        // 2. 카메라 중지하기
+        function stopCamera() {
+            if (isScanning) {
+                Quagga.stop();
+                isScanning = false;
+                console.log("카메라 중지됨");
+            }
+        }
+
+        // 3. 이미지 파일에서 바코드 읽기
+        function readFromFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // QuaggaJS로 이미지 분석
+                Quagga.decodeSingle({
+                    src: e.target.result, // 이미지 데이터
+                    numOfWorkers: 0,
+                    decoder: {
+                        readers: [
+                            "code_128_reader",
+                            "ean_reader", 
+                            "ean_8_reader",
+                            "upc_reader"
+                        ]
+                    }
+                }, function(result) {
+                    if (result && result.codeResult) {
+                        const code = result.codeResult.code;
+                        const format = result.codeResult.format;
+                        showResult(code, format);
+                        console.log('파일에서 바코드 인식:', code);
+                    } else {
+                        alert('바코드를 찾을 수 없습니다.');
+                    }
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 4. 결과 화면에 표시하기
+        function showResult(code, format) {
+            document.getElementById('barcode-number').textContent = code;
+            document.getElementById('barcode-format').textContent = format.toUpperCase();
+            document.getElementById('result').classList.remove('hidden');
+        }
+
+        // 페이지 닫을 때 카메라 정리
+        window.addEventListener('beforeunload', function() {
+            if (isScanning) {
+                Quagga.stop();
+            }
+        });
+    </script>
+</body>
+</html>
