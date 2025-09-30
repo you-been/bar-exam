@@ -78,11 +78,17 @@
         display: none;
     }
 
-    canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 1;
+    #scanner-container {
+        width: 85%;
+        height: 480px;
+        margin: 0 auto;
+    }
+
+    #scanner-container canvas,
+    #scanner-container video {
+        width: 100% !important;
+        height: auto !important;
+        border-radius: 10px;
     }
 
     @media (max-width: 768px) {
@@ -101,7 +107,7 @@
         }
 
         .container {
-          max-width: 100%;
+            max-width: 100%;
         }
 
         #scanner-container {
@@ -138,7 +144,7 @@
            종료버튼을 클릭하면 scannerIsRunning=false로 변경  */
         if (!scannerIsRunning) {
 
-          updateStatus("카메라를 준비하는 중...");
+            updateStatus("카메라를 준비하는 중...");
 
             // quagga.min.js에서 선언된 스캐너(Quagga) 초기화 
             // <video>와 <canvas>가 생성되며 각 정보를 초기화하는 부분     
