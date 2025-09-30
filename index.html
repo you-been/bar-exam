@@ -182,32 +182,53 @@
             });
         }
 
-         // 바코드 인식 이벤트 핸들러
+        // 바코드 인식 이벤트 핸들러
         function onDetectedHandler(result) {
-            // 인식 신뢰도 체크 (낮은 신뢰도는 무시)
-            if (!result.codeResult || result.codeResult.code.length < 8) {
-                return; // 너무 짧은 코드는 오인식
-            }
+            if (!result.codeResult) return;
 
             const code = result.codeResult.code;
             const format = result.codeResult.format;
 
-            // 실시간 콘솔 로그 (디버깅용)
-            console.log(`인식 시도: ${code} (신뢰도 체크 통과)`);
+            // 13자리 바코드 필터링 강화
+            // EAN-13은 정확히 13자리, UPC-A는 12자리여야 함
+            const expectedLengths = {
+                'ean_13': 13,
+                'upc_a': 12,
+                'ean_8': 8,
+                'code_128': 0  // 가변 길이
+            };
+
+            const expectedLength = expectedLengths[format];
+            
+            // 형식별 길이 체크
+            if (expectedLength > 0 && code.length !== expectedLength) {
+                console.log(`❌ 무시: ${code} (${code.length}자리) - ${format}는 ${expectedLength}자리여야 함`);
+                return;
+            }
+
+            // 13자리 기대하는데 8자리면 무조건 거부
+            if (code.length === 8 && format !== 'ean_8') {
+                console.log(`❌ 무시: ${code} - 부분 인식 의심 (8자리)`);
+                return;
+            }
+
+            // 실시간 콘솔 로그
+            console.log(`✅ 인식: ${code} (${code.length}자리, ${format})`);
 
             if (lastCode === code) {
                 detectionCount++;
+                console.log(`🔄 연속 인식 ${detectionCount}회: ${code}`);
             } else {
                 detectionCount = 1;
                 lastCode = code;
             }
 
-            // 같은 코드가 5번 연속 인식되면 확정 (3→5로 증가)
+            // 같은 코드가 5번 연속 인식되면 확정
             if (detectionCount >= 5) {
                 stopCamera();
                 showResult(code, format);
-                alert(`바코드 인식 완료! ✅\n\n번호: ${code}\n형식: ${format.toUpperCase()}\n\n다시 스캔하려면 '카메라 시작'을 눌러주세요.`);
-                Quagga.offDetected(onDetectedHandler); // 중복 방지
+                alert(`바코드 인식 완료! ✅\n\n번호: ${code}\n형식: ${format.toUpperCase()}\n길이: ${code.length}자리\n\n다시 스캔하려면 '카메라 시작'을 눌러주세요.`);
+                Quagga.offDetected(onDetectedHandler);
             }
         }
 
