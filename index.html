@@ -96,6 +96,10 @@
         input[type="file"] { 
             margin: 10px 0;
         }
+
+           .scanner video {
+       transform: scale(1.5);
+   }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 </head>
@@ -104,7 +108,7 @@
     
     <!-- 1. 카메라로 스캔 -->
     <div>
-        <h3>📷 카메라로 스캔하기</h3>
+        <h3>카메라로 스캔하기</h3>
         <p style="color: #666; font-size: 14px;">
             💡 바코드 인식 후 카메라가 자동으로 중지됩니다. 추가 스캔을 원하면 다시 시작 버튼을 누르세요!
         </p>
@@ -117,7 +121,7 @@
     
     <!-- 2. 파일에서 읽기 -->
     <div>
-        <h3>📁 이미지 파일에서 읽기</h3>
+        <h3>이미지 파일에서 읽기</h3>
         <input type="file" accept="image/*" onchange="readFromFile(event)">
     </div>
     
