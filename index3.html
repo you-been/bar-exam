@@ -60,7 +60,6 @@
         border-radius: 15px;
         padding: 30px;
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-        overflow: hidden;
     }
 
     #scanner-container video {
@@ -68,15 +67,19 @@
         height: auto !important;
         border-radius: 10px;
         display: block;
+        position: relative;
     }
 
     #scanner-container canvas {
-        position: absolute;
-        top: 30px;
-        left: 30px;
-        width: calc(100% - 60px) !important;
-        height: auto !important;
-        border-radius: 10px;
+        position: absolute !important;
+        top: 30px !important;
+        left: 30px !important;
+        right: 30px !important;
+        bottom: auto !important;
+    }
+
+    #scanner-container canvas.drawingBuffer {
+        z-index: 2;
     }
 
     #selectedImageContainer {
@@ -134,7 +137,7 @@
     var scannerIsRunning = false;
     var previousBarcode = "";
     var consecutiveMatches = 0;
-    var targetMatches = 10;
+    var targetMatches = 5;
 
     function updateStatus(message) {
         document.getElementById("status").textContent = message;
@@ -150,37 +153,26 @@
                     type: "LiveStream",
                     target: document.querySelector('#scanner-container'),
                     constraints: {
-                        width: { ideal: 640 },
-                        height: { ideal: 480 },
-                        facingMode: "environment",
-                        aspectRatio: { ideal: 4/3 }
-                    },
-                    area: {
-                        top: "20%",
-                        right: "10%",
-                        left: "10%",
-                        bottom: "20%"
+                        width: 640,
+                        height: 480,
+                        facingMode: "environment"
                     }
                 },
                 locator: {
-                    patchSize: "medium",
+                    patchSize: "large",
                     halfSample: true
                 },
-                numOfWorkers: 4,
-                frequency: 10,
+                numOfWorkers: 2,
+                frequency: 5,
                 decoder: {
                     readers: [
                         "code_128_reader",
                         "ean_reader",
                         "ean_8_reader",
                         "code_39_reader",
-                        "code_39_vin_reader",
-                        "codabar_reader",
                         "upc_reader",
-                        "upc_e_reader",
-                        "i2of5_reader",
-                    ],
-                    multiple: false
+                        "upc_e_reader"
+                    ]
                 },
                 locate: true
             },
@@ -281,10 +273,6 @@
         if (!result || !result.codeResult) return;
         
         var barcodeValue = result.codeResult.code;
-        var quality = result.codeResult.quality || 0;
-
-        // 품질이 낮은 인식 결과 필터링
-        if (quality < 50) return;
 
         console.log("바코드 값: " + barcodeValue);
 
