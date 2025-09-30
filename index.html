@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>간단 바코드 스캐너</title>
+    <title>바코드 스캐너</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -71,10 +71,10 @@
         .scan-area::before {
             content: '바코드를 이 영역에 맞춰주세요';
             position: absolute;
-            top: -30px;
+            top: -36px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.5);
             color: white;
             padding: 5px 10px;
             border-radius: 5px;
@@ -93,7 +93,7 @@
             display: none;
         }
         
-        input[type="file"] {
+        input[type="file"] { 
             margin: 10px 0;
         }
     </style>
@@ -182,10 +182,18 @@
             });
         }
 
-        // 바코드 인식 이벤트 핸들러
+         // 바코드 인식 이벤트 핸들러
         function onDetectedHandler(result) {
+            // 인식 신뢰도 체크 (낮은 신뢰도는 무시)
+            if (!result.codeResult || result.codeResult.code.length < 8) {
+                return; // 너무 짧은 코드는 오인식
+            }
+
             const code = result.codeResult.code;
             const format = result.codeResult.format;
+
+            // 실시간 콘솔 로그 (디버깅용)
+            console.log(`인식 시도: ${code} (신뢰도 체크 통과)`);
 
             if (lastCode === code) {
                 detectionCount++;
@@ -194,8 +202,8 @@
                 lastCode = code;
             }
 
-            // 같은 코드가 3번 연속 인식되면 확정
-            if (detectionCount >= 3) {
+            // 같은 코드가 5번 연속 인식되면 확정 (3→5로 증가)
+            if (detectionCount >= 5) {
                 stopCamera();
                 showResult(code, format);
                 alert(`바코드 인식 완료! ✅\n\n번호: ${code}\n형식: ${format.toUpperCase()}\n\n다시 스캔하려면 '카메라 시작'을 눌러주세요.`);
