@@ -53,7 +53,6 @@
 
     #scanner-container {
         position: relative;
-        width: 100%;
         height: calc(100% - 60px);
         /* 시작종료 버튼을 표시하기 위해서 위치 계산 */
         background: white;
@@ -84,6 +83,30 @@
         top: 0;
         left: 0;
         z-index: 1;
+    }
+
+    @media (max-width: 768px) {
+        body {
+            padding: 10px;
+        }
+
+        h1 {
+            font-size: 1.8em;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 14px;
+        }
+
+        .container {
+          max-width: 100%;
+        }
+
+        #scanner-container {
+            border-radius: 10px;
+        }
     }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
