@@ -1,443 +1,152 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UDI 바코드 리더기</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.20.0/index.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UDI 바코드 리더기</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.20.0/index.min.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f3f4f6;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 500px;
+    }
 
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
+    h1 {
+      text-align: center;
+      font-size: 22px;
+      margin-bottom: 15px;
+    }
 
-        .header {
-            text-align: center;
-            color: white;
-            margin-bottom: 30px;
-        }
+    .video-container {
+      position: relative;
+      width: 100%;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
 
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 10px;
-        }
+    #video {
+      width: 100%;
+      display: block;
+    }
 
-        .header p {
-            opacity: 0.9;
-            font-size: 14px;
-        }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
 
-        .card {
-            background: white;
-            border-radius: 20px;
-            padding: 25px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            margin-bottom: 20px;
-        }
+    button {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
 
-        .video-container {
-            position: relative;
-            width: 100%;
-            background: #000;
-            border-radius: 15px;
-            overflow: hidden;
-            margin-bottom: 20px;
-        }
+    .btn-start {
+      background: #3b82f6;
+      color: white;
+    }
 
-        #video {
-            width: 100%;
-            height: auto;
-            display: block;
-        }
+    .btn-stop {
+      background: #ef4444;
+      color: white;
+    }
 
-        .scanner-line {
-            position: absolute;
-            left: 0;
-            width: 100%;
-            height: 2px;
-            background: linear-gradient(90deg, transparent, #00ff00, transparent);
-            animation: scan 2s linear infinite;
-            box-shadow: 0 0 10px #00ff00;
-        }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
 
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100%; }
-        }
+    .status {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #374151;
+    }
 
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        button {
-            flex: 1;
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-start {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .btn-start:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-        }
-
-        .btn-stop {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-stop:hover {
-            background: #dc2626;
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-
-        .result-container {
-            display: none;
-        }
-
-        .result-container.active {
-            display: block;
-        }
-
-        .result-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .success-icon {
-            width: 40px;
-            height: 40px;
-            background: #10b981;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-        }
-
-        .result-header h3 {
-            color: #1f2937;
-            font-size: 20px;
-        }
-
-        .result-item {
-            margin-bottom: 15px;
-            padding: 15px;
-            background: #f9fafb;
-            border-radius: 10px;
-        }
-
-        .result-label {
-            font-size: 12px;
-            color: #6b7280;
-            font-weight: 600;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-        }
-
-        .result-value {
-            font-size: 16px;
-            color: #1f2937;
-            word-break: break-all;
-            font-family: 'Courier New', monospace;
-        }
-
-        .status {
-            text-align: center;
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .status.scanning {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .status.stopped {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .camera-select {
-            margin-bottom: 15px;
-        }
-
-        .camera-select select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
-            font-size: 14px;
-            background: white;
-        }
-
-        .history {
-            margin-top: 20px;
-        }
-
-        .history-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 10px;
-        }
-
-        .history-item {
-            padding: 12px;
-            background: #f9fafb;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            font-size: 13px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .history-code {
-            font-family: 'Courier New', monospace;
-            flex: 1;
-            margin-right: 10px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-
-        .history-format {
-            font-size: 11px;
-            padding: 4px 8px;
-            background: #667eea;
-            color: white;
-            border-radius: 5px;
-        }
-    </style>
+    .result {
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      word-break: break-all;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🏥 UDI 바코드 리더기</h1>
-            <p>의료기기 바코드를 스캔하세요</p>
-        </div>
-
-        <div class="card">
-            <div class="status scanning" id="status">스캔 시작 버튼을 눌러주세요</div>
-
-            <div class="camera-select">
-                <select id="cameraSelect">
-                    <option value="">카메라 선택...</option>
-                </select>
-            </div>
-
-            <div class="video-container">
-                <video id="video" playsinline></video>
-                <div class="scanner-line"></div>
-            </div>
-
-            <div class="controls">
-                <button class="btn-start" id="startBtn">스캔 시작</button>
-                <button class="btn-stop" id="stopBtn" disabled>스캔 중지</button>
-            </div>
-
-            <div class="result-container" id="resultContainer">
-                <div class="result-header">
-                    <div class="success-icon">✓</div>
-                    <h3>바코드 인식 완료</h3>
-                </div>
-                <div class="result-item">
-                    <div class="result-label">바코드 데이터</div>
-                    <div class="result-value" id="resultText"></div>
-                </div>
-                <div class="result-item">
-                    <div class="result-label">바코드 형식</div>
-                    <div class="result-value" id="resultFormat"></div>
-                </div>
-            </div>
-
-            <div class="history" id="historyContainer" style="display: none;">
-                <div class="history-title">스캔 기록</div>
-                <div id="historyList"></div>
-            </div>
-        </div>
+  <div class="card">
+    <h1>🏥 UDI 바코드 리더기</h1>
+    <div class="video-container">
+      <video id="video" playsinline></video>
     </div>
+    <div class="controls">
+      <button class="btn-start" id="startBtn">스캔 시작</button>
+      <button class="btn-stop" id="stopBtn" disabled>스캔 중지</button>
+    </div>
+    <div class="status" id="status">스캔 버튼을 눌러주세요</div>
+    <div class="result" id="result"></div>
+  </div>
 
-    <script>
-        const video = document.getElementById('video');
-        const startBtn = document.getElementById('startBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const resultContainer = document.getElementById('resultContainer');
-        const resultText = document.getElementById('resultText');
-        const resultFormat = document.getElementById('resultFormat');
-        const status = document.getElementById('status');
-        const cameraSelect = document.getElementById('cameraSelect');
-        const historyContainer = document.getElementById('historyContainer');
-        const historyList = document.getElementById('historyList');
+  <script>
+    const video = document.getElementById('video');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const status = document.getElementById('status');
+    const resultBox = document.getElementById('result');
 
-        let codeReader = null;
-        let selectedDeviceId = null;
-        let scanHistory = [];
+    let codeReader = null;
 
-        // 카메라 목록 가져오기
-        async function getCameras() {
-            try {
-                const devices = await navigator.mediaDevices.enumerateDevices();
-                const videoDevices = devices.filter(device => device.kind === 'videoinput');
-                
-                cameraSelect.innerHTML = '<option value="">카메라 선택...</option>';
-                videoDevices.forEach((device, index) => {
-                    const option = document.createElement('option');
-                    option.value = device.deviceId;
-                    option.text = device.label || `카메라 ${index + 1}`;
-                    cameraSelect.appendChild(option);
-                });
-
-                // 후면 카메라를 기본으로 선택
-                const backCamera = videoDevices.find(device => 
-                    device.label.toLowerCase().includes('back') || 
-                    device.label.toLowerCase().includes('rear')
-                );
-                if (backCamera) {
-                    cameraSelect.value = backCamera.deviceId;
-                    selectedDeviceId = backCamera.deviceId;
-                } else if (videoDevices.length > 0) {
-                    cameraSelect.value = videoDevices[0].deviceId;
-                    selectedDeviceId = videoDevices[0].deviceId;
-                }
-            } catch (err) {
-                console.error('카메라 목록 가져오기 실패:', err);
-            }
-        }
-
-        cameraSelect.addEventListener('change', (e) => {
-            selectedDeviceId = e.target.value;
+    // 스캔 시작
+    startBtn.addEventListener('click', async () => {
+      try {
+        codeReader = new ZXing.BrowserMultiFormatReader();
+        await codeReader.decodeFromVideoDevice(null, video, (result, err) => {
+          if (result) {
+            resultBox.textContent = `코드: ${result.text}\n형식: ${result.format}`;
+            if (navigator.vibrate) navigator.vibrate(200);
+          }
         });
 
-        // 스캔 시작
-        startBtn.addEventListener('click', async () => {
-            if (!selectedDeviceId) {
-                alert('카메라를 선택해주세요');
-                return;
-            }
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        status.textContent = '스캔 중... 바코드를 카메라에 비춰주세요';
+      } catch (err) {
+        console.error('스캔 시작 실패:', err);
+        alert('카메라 접근에 실패했습니다. 권한을 확인해주세요.');
+      }
+    });
 
-            try {
-                codeReader = new ZXing.BrowserMultiFormatReader();
-                
-                await codeReader.decodeFromVideoDevice(selectedDeviceId, video, (result, err) => {
-                    if (result) {
-                        handleScanResult(result);
-                    }
-                });
-
-                startBtn.disabled = true;
-                stopBtn.disabled = false;
-                status.textContent = '스캔 중... 바코드를 카메라에 비춰주세요';
-                status.className = 'status scanning';
-                resultContainer.classList.remove('active');
-            } catch (err) {
-                console.error('스캔 시작 실패:', err);
-                alert('카메라 접근에 실패했습니다. 권한을 확인해주세요.');
-            }
-        });
-
-        // 스캔 중지
-        stopBtn.addEventListener('click', () => {
-            if (codeReader) {
-                codeReader.reset();
-                codeReader = null;
-            }
-            startBtn.disabled = false;
-            stopBtn.disabled = true;
-            status.textContent = '스캔이 중지되었습니다';
-            status.className = 'status stopped';
-        });
-
-        // 스캔 결과 처리
-        function handleScanResult(result) {
-            const code = result.text;
-            const format = result.format;
-
-            resultText.textContent = code;
-            resultFormat.textContent = format;
-            resultContainer.classList.add('active');
-
-            // 히스토리에 추가
-            addToHistory(code, format);
-
-            // 성공 피드백
-            if (navigator.vibrate) {
-                navigator.vibrate(200);
-            }
-
-            status.textContent = '바코드 인식 성공!';
-            status.className = 'status scanning';
-        }
-
-        // 히스토리 추가
-        function addToHistory(code, format) {
-            const timestamp = new Date().toLocaleString('ko-KR');
-            scanHistory.unshift({ code, format, timestamp });
-
-            // 최대 10개까지만 저장
-            if (scanHistory.length > 10) {
-                scanHistory.pop();
-            }
-
-            updateHistoryDisplay();
-        }
-
-        // 히스토리 표시
-        function updateHistoryDisplay() {
-            if (scanHistory.length === 0) {
-                historyContainer.style.display = 'none';
-                return;
-            }
-
-            historyContainer.style.display = 'block';
-            historyList.innerHTML = scanHistory.map(item => `
-                <div class="history-item">
-                    <div class="history-code">${item.code}</div>
-                    <div class="history-format">${item.format}</div>
-                </div>
-            `).join('');
-        }
-
-        // 초기화
-        getCameras();
-    </script>
+    // 스캔 중지
+    stopBtn.addEventListener('click', () => {
+      if (codeReader) {
+        codeReader.reset();
+        codeReader = null;
+      }
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      status.textContent = '스캔이 중지되었습니다';
+    });
+  </script>
 </body>
 </html>
