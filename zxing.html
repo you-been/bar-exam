@@ -98,7 +98,7 @@
   <div class="card">
     <h1>🏥 UDI 바코드 리더기</h1>
     <div class="video-container">
-      <video id="video" playsinline></video>
+      <video id="video" autoplay muted playsinline></video>
     </div>
     <div class="controls">
       <button class="btn-start" id="startBtn">스캔 시작</button>
@@ -119,23 +119,36 @@
 
     // 스캔 시작
     startBtn.addEventListener('click', async () => {
-      try {
-        codeReader = new ZXing.BrowserMultiFormatReader();
-        await codeReader.decodeFromVideoDevice(null, video, (result, err) => {
-          if (result) {
-            resultBox.textContent = `코드: ${result.text}\n형식: ${result.format}`;
-            if (navigator.vibrate) navigator.vibrate(200);
-          }
-        });
+  try {
+    codeReader = new ZXing.BrowserMultiFormatReader();
 
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-        status.textContent = '스캔 중... 바코드를 카메라에 비춰주세요';
-      } catch (err) {
-        console.error('스캔 시작 실패:', err);
-        alert('카메라 접근에 실패했습니다. 권한을 확인해주세요.');
+    // 후면 카메라 우선
+    const constraints = { video: { facingMode: "environment" } };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+
+    await codeReader.decodeFromStream(stream, video, (result, err) => {
+      if (result) {
+        resultBox.textContent = `코드: ${result.text}\n형식: ${result.format}`;
+        if (navigator.vibrate) navigator.vibrate(200);
       }
     });
+
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+    status.textContent = '스캔 중... 바코드를 카메라에 비춰주세요';
+  } catch (err) {
+    console.error('스캔 시작 실패:', err);
+
+    if (err.name === "NotAllowedError") {
+      alert("카메라 권한이 거부되었습니다. 브라우저 설정에서 카메라 권한을 허용해주세요.");
+    } else if (err.name === "NotFoundError") {
+      alert("사용 가능한 카메라가 없습니다.");
+    } else {
+      alert("카메라 접근에 실패했습니다. 브라우저 권한과 기기를 확인해주세요.");
+    }
+  }
+});
 
     // 스캔 중지
     stopBtn.addEventListener('click', () => {
